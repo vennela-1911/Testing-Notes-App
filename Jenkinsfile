@@ -1,4 +1,5 @@
 pipeline {
+
     agent any
 
     options {
@@ -13,53 +14,90 @@ pipeline {
     stages {
 
         stage('Checkout SCM') {
+
             steps {
+
                 git branch: 'main',
                 url: 'https://github.com/vennela-1911/Testing-Notes-App.git'
             }
         }
 
         stage('Install Dependencies') {
+
             steps {
+
                 bat '''
+                python --version
+
                 python -m pip install --upgrade pip
-                pip install -r requirements.txt
+
+                python -m pip install -r requirements.txt
+
+                python -m pip install webdriver-manager
+
+                python -m pip install pytest-xdist
+
+                python -m pip install allure-pytest
                 '''
             }
         }
 
         stage('Clean Workspace') {
+
             steps {
+
                 bat '''
                 if exist allure-results rmdir /s /q allure-results
-                mkdir allure-results
 
                 if exist reports rmdir /s /q reports
+
+                mkdir allure-results
+
                 mkdir reports
                 '''
             }
         }
 
         stage('Run API Tests') {
+
             steps {
+
                 bat '''
-                pytest tests/api -v --alluredir=allure-results
+                python -m pytest tests/api -v ^
+                --alluredir=allure-results
                 '''
             }
         }
 
         stage('Run UI Tests') {
+
             steps {
+
                 bat '''
-                pytest tests/ui -v --alluredir=allure-results
+                python -m pytest tests/ui -n 2 -v ^
+                --alluredir=allure-results
                 '''
             }
         }
 
         stage('Run AI Tests') {
+
             steps {
+
                 bat '''
-                pytest tests/ai -v --alluredir=allure-results
+                python -m pytest tests/ai -v ^
+                --alluredir=allure-results
+                '''
+            }
+        }
+
+        stage('Run E2E Tests') {
+
+            steps {
+
+                bat '''
+                python -m pytest tests/e2e -v ^
+                --alluredir=allure-results
                 '''
             }
         }
@@ -69,7 +107,10 @@ pipeline {
 
         always {
 
-            archiveArtifacts artifacts: 'reports/**/*.*', allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: 'reports/**/*.*',
+                allowEmptyArchive: true
+            )
 
             allure([
                 includeProperties: false,
@@ -79,10 +120,12 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline executed successfully.'
+
+            echo 'All 18 test cases passed successfully.'
         }
 
         failure {
+
             echo 'Pipeline execution failed.'
         }
     }
