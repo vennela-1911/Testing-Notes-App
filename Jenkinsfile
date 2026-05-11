@@ -22,20 +22,33 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Verify Python') {
 
             steps {
 
                 bat '''
                 python --version
+                python -m pip --version
+                '''
+            }
+        }
 
+        stage('Install Dependencies') {
+
+            steps {
+
+                bat '''
                 python -m pip install --upgrade pip
 
                 python -m pip install -r requirements.txt
 
                 python -m pip install webdriver-manager
 
+                python -m pip install pytest
+
                 python -m pip install pytest-xdist
+
+                python -m pip install pytest-rerunfailures
 
                 python -m pip install allure-pytest
                 '''
@@ -75,6 +88,8 @@ pipeline {
 
                 bat '''
                 python -m pytest tests/ui -n 2 -v ^
+                --reruns 1 ^
+                --reruns-delay 2 ^
                 --alluredir=allure-results
                 '''
             }
