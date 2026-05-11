@@ -1,14 +1,16 @@
 services:
 
   selenium-hub:
-    image: selenium/hub:4.18.1
+    image: selenium/hub:4.17.0
     container_name: selenium-hub
 
     ports:
       - "4444:4444"
 
+    restart: always
+
   chrome1:
-    image: selenium/node-chrome:4.18.1
+    image: selenium/node-chrome:4.17.0
     container_name: chrome1
 
     shm_size: 2gb
@@ -16,14 +18,17 @@ services:
     depends_on:
       - selenium-hub
 
+    restart: always
+
     environment:
       - SE_EVENT_BUS_HOST=selenium-hub
       - SE_EVENT_BUS_PUBLISH_PORT=4442
       - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
       - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
 
   chrome2:
-    image: selenium/node-chrome:4.18.1
+    image: selenium/node-chrome:4.17.0
     container_name: chrome2
 
     shm_size: 2gb
@@ -31,23 +36,11 @@ services:
     depends_on:
       - selenium-hub
 
-    environment:
-      - SE_EVENT_BUS_HOST=selenium-hub
-      - SE_EVENT_BUS_PUBLISH_PORT=4442
-      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-      - SE_NODE_MAX_SESSIONS=1
-
-  chrome3:
-    image: selenium/node-chrome:4.18.1
-    container_name: chrome3
-
-    shm_size: 2gb
-
-    depends_on:
-      - selenium-hub
+    restart: always
 
     environment:
       - SE_EVENT_BUS_HOST=selenium-hub
       - SE_EVENT_BUS_PUBLISH_PORT=4442
       - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
       - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true

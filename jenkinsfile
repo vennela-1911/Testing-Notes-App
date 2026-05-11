@@ -1,153 +1,66 @@
 pipeline {
-
     agent any
 
     options {
-
         timestamps()
-
-        timeout(
-            time: 60,
-            unit: 'MINUTES'
-        )
+        timeout(time: 1, unit: 'HOURS')
     }
 
     environment {
-
-        EXECUTION_TYPE = "remote"
+        PYTHONUNBUFFERED = "1"
     }
 
     stages {
 
-        stage('Install Dependencies') {
-
+        stage('Checkout SCM') {
             steps {
+                git branch: 'main',
+                url: 'https://github.com/vennela-1911/Testing-Notes-App.git'
+            }
+        }
 
+        stage('Install Dependencies') {
+            steps {
                 bat '''
                 python -m pip install --upgrade pip
-                python -m pip install -r "Automation/requirements.txt"
+                pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Clean Previous Reports') {
-
+        stage('Clean Workspace') {
             steps {
-
                 bat '''
-                if exist "Automation\\reports\\allure-results" (
-                    rmdir /s /q "Automation\\reports\\allure-results"
-                )
+                if exist allure-results rmdir /s /q allure-results
+                mkdir allure-results
 
-                if exist "Automation\\reports\\allure-report" (
-                    rmdir /s /q "Automation\\reports\\allure-report"
-                )
-
-                mkdir "Automation\\reports\\allure-results"
+                if exist reports rmdir /s /q reports
+                mkdir reports
                 '''
             }
         }
 
         stage('Run API Tests') {
-
             steps {
-
-                catchError(
-                    buildResult: 'UNSTABLE',
-                    stageResult: 'FAILURE'
-                ) {
-
-                    bat '''
-                    python -m pytest ^
-                    "Automation/tests/api" ^
-                    -v ^
-                    --tb=short ^
-                    --disable-warnings ^
-                    --alluredir="Automation/reports/allure-results"
-                    '''
-                }
-            }
-        }
-
-        stage('Run E2E Tests') {
-
-            steps {
-
-                catchError(
-                    buildResult: 'UNSTABLE',
-                    stageResult: 'FAILURE'
-                ) {
-
-                    bat '''
-                    python -m pytest ^
-                    "Automation/tests/e2e" ^
-                    -v ^
-                    --tb=short ^
-                    --disable-warnings ^
-                    --alluredir="Automation/reports/allure-results"
-                    '''
-                }
+                bat '''
+                pytest tests/api -v --alluredir=allure-results
+                '''
             }
         }
 
         stage('Run UI Tests') {
-
             steps {
-
-                catchError(
-                    buildResult: 'UNSTABLE',
-                    stageResult: 'FAILURE'
-                ) {
-
-                    bat '''
-                    python -m pytest ^
-                    "Automation/tests/ui" ^
-                    -v ^
-                    --tb=short ^
-                    --disable-warnings ^
-                    --alluredir="Automation/reports/allure-results"
-                    '''
-                }
+                bat '''
+                pytest tests/ui -v --alluredir=allure-results
+                '''
             }
         }
 
         stage('Run AI Tests') {
-
             steps {
-
-                catchError(
-                    buildResult: 'UNSTABLE',
-                    stageResult: 'FAILURE'
-                ) {
-
-                    bat '''
-                    python -m pytest ^
-                    "Automation/tests/ai" ^
-                    -v ^
-                    --tb=short ^
-                    --disable-warnings ^
-                    --alluredir="Automation/reports/allure-results"
-                    '''
-                }
-            }
-        }
-
-        stage('Generate Allure Report') {
-
-            steps {
-
-                allure(
-
-                    includeProperties: false,
-
-                    jdk: '',
-
-                    results: [
-                        [
-                            path: 'Automation/reports/allure-results'
-                        ]
-                    ]
-                )
+                bat '''
+                pytest tests/ai -v --alluredir=allure-results
+                '''
             }
         }
     }
@@ -156,26 +69,20 @@ pipeline {
 
         always {
 
-            archiveArtifacts(
+            archiveArtifacts artifacts: 'reports/**/*.*', allowEmptyArchive: true
 
-                artifacts: 'Automation/reports/screenshots/*.png',
-
-                allowEmptyArchive: true
-            )
+            allure([
+                includeProperties: false,
+                jdk: '',
+                results: [[path: 'allure-results']]
+            ])
         }
 
         success {
-
             echo 'Pipeline executed successfully.'
         }
 
-        unstable {
-
-            echo 'Some test cases failed. Build marked as UNSTABLE.'
-        }
-
         failure {
-
             echo 'Pipeline execution failed.'
         }
     }

@@ -1,6 +1,3 @@
-"""
-tests/ai/test_ai_generated_note.py
-"""
 
 import allure
 import time

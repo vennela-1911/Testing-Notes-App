@@ -1,9 +1,13 @@
+import time
 import pytest
 
 from selenium import webdriver
 
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+
+from urllib3.exceptions import MaxRetryError
+from selenium.common.exceptions import WebDriverException
 
 from config.environment import config
 
@@ -19,6 +23,8 @@ def driver():
         config.browser.remote
     )
 
+    driver = None
+
     if browser_name == "chrome":
 
         options = ChromeOptions()
@@ -28,6 +34,8 @@ def driver():
         options.add_argument("--disable-infobars")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--remote-allow-origins=*")
 
         if config.browser.headless:
 
@@ -39,11 +47,38 @@ def driver():
                 "\nRunning tests on Selenium Grid Docker\n"
             )
 
-            driver = webdriver.Remote(
-                command_executor=
-                "http://localhost:4444",
-                options=options
-            )
+            max_attempts = 5
+
+            for attempt in range(max_attempts):
+
+                try:
+
+                    driver = webdriver.Remote(
+                        command_executor=
+                        "http://localhost:4444/wd/hub",
+                        options=options
+                    )
+
+                    break
+
+                except (
+                    MaxRetryError,
+                    WebDriverException,
+                    ConnectionRefusedError,
+                ):
+
+                    print(
+                        f"Grid not ready. Retry "
+                        f"{attempt + 1}/{max_attempts}"
+                    )
+
+                    time.sleep(5)
+
+            if driver is None:
+
+                raise Exception(
+                    "Could not connect to Selenium Grid."
+                )
 
         else:
 
@@ -67,7 +102,7 @@ def driver():
 
             driver = webdriver.Remote(
                 command_executor=
-                "http://localhost:4444",
+                "http://localhost:4444/wd/hub",
                 options=options
             )
 
@@ -85,4 +120,12 @@ def driver():
 
     yield driver
 
-    driver.quit()
+    try:
+
+        driver.quit()
+
+    except Exception:
+
+        print(
+            "Driver already closed."
+        )
