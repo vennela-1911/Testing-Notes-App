@@ -87,19 +87,18 @@ pipeline {
 
         always {
 
-            allure([
-                includeProperties: false,
-                jdk: '',
-                results: [[path: 'allure-results']]
-            ])
+            archiveArtifacts artifacts: 'allure-results/**/*.*', allowEmptyArchive: true
+
+            junit allowEmptyResults: true,
+            testResults: '**/pytest.xml'
         }
 
         success {
-            echo 'All 18 test cases passed successfully.'
+            echo 'SUCCESS: All 18 test cases passed.'
         }
 
         failure {
-            echo 'Pipeline execution failed.'
+            echo 'FAILURE: Pipeline failed.'
         }
     }
 }
